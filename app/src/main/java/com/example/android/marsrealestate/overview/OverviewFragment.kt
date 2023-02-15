@@ -20,10 +20,13 @@ package com.example.android.marsrealestate.overview
 import android.os.Bundle
 import android.view.*
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
 import com.example.android.marsrealestate.R
 import com.example.android.marsrealestate.databinding.FragmentOverviewBinding
 import com.example.android.marsrealestate.databinding.GridViewItemBinding
+import com.example.android.marsrealestate.network.MarsPropertyFilter
 
 /**
  * This fragment shows the the status of the Mars real-estate web services transaction.
@@ -43,13 +46,24 @@ class OverviewFragment : Fragment() {
      */
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
-        val binding = GridViewItemBinding.inflate(inflater)
+        val binding = FragmentOverviewBinding.inflate(inflater)
 
         // Allows Data Binding to Observe LiveData with the lifecycle of this Fragment
         binding.lifecycleOwner = this
 
         // Giving the binding access to the OverviewViewModel
         binding.viewModel = viewModel
+
+        binding.photosGrid.adapter= PhotoGridAdapter(PhotoGridAdapter.OnClickListener {
+            viewModel.onNavigateToDetailView(it)
+        })
+
+        viewModel.navigateToDetailView.observe(viewLifecycleOwner, Observer {
+            if(null != it) {
+                this.findNavController().navigate(OverviewFragmentDirections.actionShowDetail(it))
+                viewModel.onNavigateToDetailViewDone()
+            }
+        })
 
         setHasOptionsMenu(true)
         return binding.root
@@ -61,5 +75,16 @@ class OverviewFragment : Fragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.overflow_menu, menu)
         super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+
+        viewModel.updateProperties(when(item.itemId){
+            R.id.show_buy_menu -> MarsPropertyFilter.SHOW_SALE
+            R.id.show_rent_menu -> MarsPropertyFilter.SHOW_RENT
+            else -> MarsPropertyFilter.SHOW_ALL
+        })
+
+        return true
     }
 }
